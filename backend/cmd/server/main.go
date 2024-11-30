@@ -2,20 +2,33 @@ package main
 
 import (
 	"golem/internal/api"
+	"golem/internal/db"
+	service "golem/internal/services"
 	"log"
+	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
-	r := gin.Default()
+	// Initialize the database
+	db.InitDB()
 
-	api.RegisterMetricsRoutes(r)
-	api.RegisterAlertRoutes(r)
+	// Initialize the metrics collection service
+	service.InitMetricsCollection()
 
-	r.Use(api.JWTMiddleware())
+	router := mux.NewRouter()
 
-	if err := r.Run(":3000"); err != nil {
-		log.Fatalf("could not start the server: %v", err)
-	}
+	// Register routes
+	api.RegisterMetricsRoutes(router)
+	api.RegisterAlertRoutes(router)
+	api.RegisterWebSocketRoutes(router)
+	api.RegisterAuthRoutes(router)
+
+	// Prometheus metrics endpoint
+	router.Handle("/metrics", promhttp.Handler())
+
+	log.Println("Server is running on port 4000")
+	log.Fatal(http.ListenAndServe(":4000", router))
 }

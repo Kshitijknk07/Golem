@@ -1,17 +1,33 @@
 package api
 
 import (
-	"golem/internal/services"
+	"encoding/json"
+	"golem/internal/models"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
-func RegisterAlertRoutes(r *gin.Engine) {
-	r.GET("/alerts", getAlerts)
+// Trigger Alerts
+func TriggerAlert(w http.ResponseWriter, r *http.Request) {
+	var alert models.Alert
+	err := json.NewDecoder(r.Body).Decode(&alert)
+	if err != nil {
+		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
+		return
+	}
+	models.TriggerAlert(alert)
+	json.NewEncoder(w).Encode(alert)
 }
 
-func getAlerts(c *gin.Context) {
-	alerts := services.GetAlerts()
-	c.JSON(http.StatusOK, gin.H{"alerts": alerts})
+// Manage Alerts
+func ManageAlert(w http.ResponseWriter, r *http.Request) {
+	alerts := models.GetAllAlerts()
+	json.NewEncoder(w).Encode(alerts)
+}
+
+// Routes
+func RegisterAlertRoutes(router *mux.Router) {
+	router.HandleFunc("/alerts", TriggerAlert).Methods("POST")
+	router.HandleFunc("/alerts", ManageAlert).Methods("GET")
 }

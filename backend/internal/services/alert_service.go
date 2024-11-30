@@ -1,37 +1,12 @@
-package services
+package service
 
-import (
-	"golem/internal/models"
-	"time"
-)
+import "golem/internal/models"
 
-var alertsStore = make(map[string]models.Alert)
-
-func TriggerAlert(metric models.Metric) (*models.Alert, error) {
-	var alert models.Alert
-
-	if metric.Type == "CPU" && metric.Value > 90 {
-		alert = models.Alert{
-			ID:        generateID(),
-			MetricID:  metric.ID,
-			Threshold: 90,
-			Severity:  "Critical",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		alertsStore[alert.ID] = alert
+func CreateAlert(message string, severity string) models.Alert {
+	alert := models.Alert{
+		Message:  message,
+		Severity: severity,
 	}
-
-	return &alert, nil
-}
-
-func generateID() string {
-	return time.Now().Format("20060102150405")
-}
-
-func GetAlerts() []models.Alert {
-	var result []models.Alert
-	for _, alert := range alertsStore {
-		result = append(result, alert)
-	}
-	return result
+	models.TriggerAlert(alert)
+	return alert
 }

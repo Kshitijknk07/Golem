@@ -1,31 +1,41 @@
-package services
+package service
 
 import (
-	"errors"
-	"golem/internal/models"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
 )
 
-var metricsStore = make(map[string]models.Metric)
+var (
+	cpuUsage = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "cpu_usage",
+		Help: "Current CPU usage percentage",
+	})
+	memUsage = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "mem_usage",
+		Help: "Current Memory usage percentage",
+	})
+)
 
-func GetMetrics() ([]models.Metric, error) {
-	var result []models.Metric
-	for _, metric := range metricsStore {
-		result = append(result, metric)
-	}
-	return result, nil
+func InitMetricsCollection() {
+	prometheus.MustRegister(cpuUsage)
+	prometheus.MustRegister(memUsage)
+
+	go collectMetrics()
 }
 
-func SaveMetric(newMetric models.Metric) error {
-	newMetric.Time = time.Now().Format(time.RFC3339)
-	metricsStore[newMetric.ID] = newMetric
-	return nil
-}
+func collectMetrics() {
+	for {
+		cpuPercents, _ := cpu.Percent(time.Second, false)
+		memStats, _ := mem.VirtualMemory()
 
-func UpdateMetric(id string, updatedMetric models.Metric) error {
-	if _, exists := metricsStore[id]; !exists {
-		return errors.New("metric not found")
+		if len(cpuPercents) > 0 {
+			cpuUsage.Set(cpuPercents[0])
+		}
+		memUsage.Set(memStats.UsedPercent)
+
+		time.Sleep(10 * time.Second)
 	}
-	metricsStore[id] = updatedMetric
-	return nil
 }

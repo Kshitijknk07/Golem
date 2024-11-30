@@ -1,9 +1,38 @@
 package models
 
+import "sync"
+
 type Metric struct {
-	ID    string  `json:"id" bson:"_id,omitempty"`
+	ID    int     `json:"id"`
 	Name  string  `json:"name"`
 	Value float64 `json:"value"`
-	Type  string  `json:"type"`
-	Time  string  `json:"time"`
+}
+
+var (
+	metrics      = []Metric{}
+	metricsMutex = &sync.Mutex{}
+)
+
+func GetAllMetrics() []Metric {
+	metricsMutex.Lock()
+	defer metricsMutex.Unlock()
+	return metrics
+}
+
+func SaveMetric(metric Metric) {
+	metricsMutex.Lock()
+	defer metricsMutex.Unlock()
+	metric.ID = len(metrics) + 1
+	metrics = append(metrics, metric)
+}
+
+func UpdateMetric(updatedMetric Metric) {
+	metricsMutex.Lock()
+	defer metricsMutex.Unlock()
+	for i, metric := range metrics {
+		if metric.ID == updatedMetric.ID {
+			metrics[i] = updatedMetric
+			return
+		}
+	}
 }

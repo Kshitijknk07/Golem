@@ -3,28 +3,22 @@ package api
 import (
 	"golem/internal/utils"
 	"net/http"
-	"strings"
-
-	"github.com/gin-gonic/gin"
 )
 
-func JWTMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			http.Error(w, "Missing token", http.StatusUnauthorized)
 			return
 		}
 
-		tokenString := strings.Split(authHeader, " ")[1]
-		_, err := utils.ValidateJWT(tokenString)
+		_, err := utils.ValidateJWT(token)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-			c.Abort()
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
 
-		c.Next()
-	}
+		next.ServeHTTP(w, r)
+	})
 }

@@ -1,9 +1,27 @@
 package models
 
+import "sync"
+
 type Alert struct {
-	ID        string  `json:"id" bson:"_id,omitempty"`
-	MetricID  string  `json:"metric_id"`
-	Threshold float64 `json:"threshold"`
-	Severity  string  `json:"severity"`
-	Timestamp string  `json:"timestamp"`
+	ID       int    `json:"id"`
+	Message  string `json:"message"`
+	Severity string `json:"severity"`
+}
+
+var (
+	alerts      = []Alert{}
+	alertsMutex = &sync.Mutex{}
+)
+
+func GetAllAlerts() []Alert {
+	alertsMutex.Lock()
+	defer alertsMutex.Unlock()
+	return alerts
+}
+
+func TriggerAlert(alert Alert) {
+	alertsMutex.Lock()
+	defer alertsMutex.Unlock()
+	alert.ID = len(alerts) + 1
+	alerts = append(alerts, alert)
 }

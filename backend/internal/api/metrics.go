@@ -1,57 +1,52 @@
 package api
 
 import (
+	"encoding/json"
 	"golem/internal/models"
-	"golem/internal/services"
+	"log"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
-func RegisterMetricsRoutes(r *gin.Engine) {
-	r.GET("/metrics", getMetrics)
-	r.POST("/metrics", postMetrics)
-	r.PUT("/metrics/:id", updateMetric)
+// Fetch Metrics
+func FetchMetrics(w http.ResponseWriter, r *http.Request) {
+	metrics := models.GetAllMetrics()
+	log.Println("Fetched Metrics:", metrics)
+	json.NewEncoder(w).Encode(metrics)
 }
 
-func getMetrics(c *gin.Context) {
-	metrics, err := services.GetMetrics()
+// Save Metrics
+func SaveMetrics(w http.ResponseWriter, r *http.Request) {
+	var metric models.Metric
+	err := json.NewDecoder(r.Body).Decode(&metric)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve metrics"})
+		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
+		log.Println("Invalid JSON data:", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"metrics": metrics})
+	log.Println("Received Metric:", metric)
+	models.SaveMetric(metric)
+	json.NewEncoder(w).Encode(metric)
 }
 
-func postMetrics(c *gin.Context) {
-	var newMetric models.Metric
-	if err := c.BindJSON(&newMetric); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
-		return
-	}
-
-	err := services.SaveMetric(newMetric)
+// Update Metrics
+func UpdateMetrics(w http.ResponseWriter, r *http.Request) {
+	var metric models.Metric
+	err := json.NewDecoder(r.Body).Decode(&metric)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save metric"})
+		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
+		log.Println("Invalid JSON data:", err)
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Metric saved successfully"})
+	log.Println("Updated Metric:", metric)
+	models.UpdateMetric(metric)
+	json.NewEncoder(w).Encode(metric)
 }
 
-func updateMetric(c *gin.Context) {
-	id := c.Param("id")
-	var updatedMetric models.Metric
-	if err := c.BindJSON(&updatedMetric); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
-		return
-	}
-
-	err := services.UpdateMetric(id, updatedMetric)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update metric"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Metric updated successfully"})
+// Routes
+func RegisterMetricsRoutes(router *mux.Router) {
+	router.HandleFunc("/metrics", FetchMetrics).Methods("GET")
+	router.HandleFunc("/metrics", SaveMetrics).Methods("POST")
+	router.HandleFunc("/metrics", UpdateMetrics).Methods("PUT")
 }
