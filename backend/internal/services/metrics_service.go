@@ -1,6 +1,7 @@
 package service
 
 import (
+	"log"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -28,13 +29,21 @@ func InitMetricsCollection() {
 
 func collectMetrics() {
 	for {
-		cpuPercents, _ := cpu.Percent(time.Second, false)
-		memStats, _ := mem.VirtualMemory()
-
-		if len(cpuPercents) > 0 {
+		cpuPercents, err := cpu.Percent(time.Second, false)
+		if err != nil {
+			log.Printf("Error fetching CPU usage: %v", err)
+		} else if len(cpuPercents) > 0 {
 			cpuUsage.Set(cpuPercents[0])
+			log.Printf("CPU Usage: %.2f%%", cpuPercents[0])
 		}
-		memUsage.Set(memStats.UsedPercent)
+
+		memStats, err := mem.VirtualMemory()
+		if err != nil {
+			log.Printf("Error fetching memory usage: %v", err)
+		} else {
+			memUsage.Set(memStats.UsedPercent)
+			log.Printf("Memory Usage: %.2f%%", memStats.UsedPercent)
+		}
 
 		time.Sleep(10 * time.Second)
 	}
