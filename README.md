@@ -1,59 +1,131 @@
-# 📊 Golem Monitoring System  
+# Golem Monitoring System
 
-Welcome to the **Golem Monitoring System**, a production-grade infrastructure monitoring solution! Inspired by industry leaders like Prometheus and Grafana, this system is designed to collect, store, and visualize system and custom metrics. Golem offers a seamless, feature-rich experience for monitoring and managing infrastructure effectively.  
+A monitoring system built with Go, providing real-time metrics collection, alerting, and visualization capabilities.
 
----
+## Overview
 
-## 🏗 Project Structure  
+Golem is a lightweight yet powerful monitoring system that combines:
+- Real-time metrics collection and storage
+- WebSocket-based live updates
+- JWT-secured API endpoints
+- SQLite persistence
+- Prometheus integration
 
-```plaintext  
-Golem/  
-├── backend/  
-│   ├── cmd/  
-│   │   └── server/  
-│   │       └── main.go  
-│   ├── internal/  
-│   │   ├── api/  
-│   │   │   ├── alert.go  
-│   │   │   ├── metrics.go  
-│   │   │   ├── middleware.go  
-│   │   │   └── websockets.go  
-│   │   ├── db/  
-│   │   │   └── db.go  
-│   │   ├── models/  
-│   │   │   ├── alert.go  
-│   │   │   └── metric.go  
-│   │   ├── service/  
-│   │   │   ├── alert_service.go  
-│   │   │   └── metrics_service.go  
-│   │   └── utils/  
-│   │       └── jwt.go  
-│   ├── prometheus.yml  
-└── README.md
+## Architecture
+
 ```
-# 🌟 Features
+backend/
+├── cmd/
+│   └── server/          # Application entry point
+├── internal/
+│   ├── api/            # HTTP handlers and routes
+│   ├── db/             # Database operations
+│   ├── models/         # Data structures
+│   ├── services/       # Business logic
+│   └── utils/          # Utility functions
+└── prometheus.yml      # Prometheus configuration
+```
 
-1. Backend API Development  
-   - 📈 Metrics Management: Fully functional APIs for fetching, saving, and updating metrics.  
-   - 🚨 Alerts Management: Manage custom alert rules and notifications.  
-   - 🔐 Secure Authentication: Robust JWT-based authentication and role-based access control (RBAC).  
-   - 🔄 Real-Time Updates: WebSocket integration for live updates of metrics and alerts.  
+## Features
 
-2. Metrics Collection & Data Gathering  
-   - ⚙️ System Metrics: Continuous collection of system metrics like CPU and memory usage.  
-   - 📊 Prometheus Integration: Collect custom metrics and store time-series data efficiently.  
+### Metrics Management
+- RESTful API for CRUD operations on metrics
+- Real-time metric streaming via WebSocket
+- Persistent storage with SQLite
+- Prometheus integration for metrics collection
 
-3. Data Storage & Persistence  
-   - 🗃 SQLite Integration: Persistent storage for alerts and configurations.  
-   - 🕒 Prometheus Storage: Time-series database for metrics storage and queries.  
+### Alert System
+- Custom alert creation and management
+- Severity-based alert categorization
+- Real-time alert notifications
+- Persistent alert history
 
-4. Alerts & Notification System  
-   - 📢 Alert Rules: Pre-configured Prometheus alert rules.  
-   - 🔔 Notifications: Integrated with Alertmanager for sending alerts via Slack.  
+### Security
+- JWT-based authentication
+- Secure WebSocket connections
+- Environment-based configuration
+- Input validation and sanitization
 
-5. Security & Authentication  
-   - 🔒 Secure API Access: JWT-based secure APIs.  
-   - 🔐 Data Encryption: Sensitive data is securely encrypted for maximum protection.
-     
-         Unleash the power of Golem Monitoring System to monitor, manage, and visualize your infrastructure effortlessly. 🎉  
+## API Endpoints
 
+### Metrics
+- `GET /metrics` - Fetch all metrics
+- `POST /metrics` - Create new metric
+- `PUT /metrics` - Update existing metric
+- `GET /ws/metrics` - WebSocket stream for real-time updates
+
+### Alerts
+- `GET /alerts` - Fetch all alerts
+- `POST /alerts` - Create new alert
+
+### Authentication
+- `POST /login` - Authenticate and receive JWT token
+
+## Getting Started
+
+### Prerequisites
+- Go 1.18 or higher
+- SQLite3
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/golem.git
+cd golem/backend
+```
+
+2. Install dependencies:
+```bash
+go mod tidy
+```
+
+3. Set up environment variables (optional):
+```bash
+export JWT_SECRET_KEY=your_secure_key_here
+```
+
+4. Run the server:
+```bash
+go run cmd/server/main.go
+```
+
+The server will start on port 4000.
+
+## Development
+
+### Project Structure
+- `internal/api`: HTTP handlers and route definitions
+- `internal/db`: Database initialization and operations
+- `internal/models`: Data structures and database models
+- `internal/services`: Business logic implementation
+- `internal/utils`: Utility functions and helpers
+
+### Database Schema
+
+#### Metrics Table
+```sql
+CREATE TABLE metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    value REAL NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Alerts Table
+```sql
+CREATE TABLE alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Security
+
+- All API endpoints are protected with JWT authentication
+- WebSocket connections are secured
+- Database operations are properly sanitized
+- Environment variables for sensitive configuration

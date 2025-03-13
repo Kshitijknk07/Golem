@@ -9,7 +9,6 @@ import (
 
 var DB *sql.DB
 
-// InitDB initializes the database
 func InitDB() {
 	var err error
 	DB, err = sql.Open("sqlite3", "./metrics.db")
@@ -17,7 +16,6 @@ func InitDB() {
 		log.Fatal(err)
 	}
 
-	// Create tables if they don't exist
 	createTables := []string{
 		`CREATE TABLE IF NOT EXISTS metrics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

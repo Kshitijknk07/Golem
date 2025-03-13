@@ -12,21 +12,15 @@ import (
 )
 
 func main() {
-	// Initialize the database
 	db.InitDB()
-
-	// Initialize the metrics collection service
 	service.InitMetricsCollection()
 
 	router := mux.NewRouter()
 
-	// Register routes
 	api.RegisterMetricsRoutes(router)
 	api.RegisterAlertRoutes(router)
 	api.RegisterWebSocketRoutes(router)
 	api.RegisterAuthRoutes(router)
-
-	// Prometheus metrics endpoint
 	router.Handle("/metrics", promhttp.Handler())
 
 	log.Println("Server is running on port 4000")

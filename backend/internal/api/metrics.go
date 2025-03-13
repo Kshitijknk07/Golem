@@ -9,42 +9,60 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Fetch Metrics
 func FetchMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := models.GetAllMetrics()
-	log.Println("Fetched Metrics:", metrics)
-	json.NewEncoder(w).Encode(metrics)
+	metrics, err := models.GetAllMetrics()
+	if err != nil {
+		log.Printf("Failed to fetch metrics: %v", err)
+		http.Error(w, "Failed to fetch metrics", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+		log.Printf("Failed to encode metrics: %v", err)
+		http.Error(w, "Failed to encode metrics", http.StatusInternalServerError)
+	}
 }
 
-// Save Metrics
 func SaveMetrics(w http.ResponseWriter, r *http.Request) {
 	var metric models.Metric
-	err := json.NewDecoder(r.Body).Decode(&metric)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+		log.Printf("Invalid JSON data: %v", err)
 		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
-		log.Println("Invalid JSON data:", err)
 		return
 	}
-	log.Println("Received Metric:", metric)
-	models.SaveMetric(metric)
-	json.NewEncoder(w).Encode(metric)
+
+	if err := models.SaveMetric(metric); err != nil {
+		log.Printf("Failed to save metric: %v", err)
+		http.Error(w, "Failed to save metric", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(metric); err != nil {
+		log.Printf("Failed to encode metric: %v", err)
+		http.Error(w, "Failed to encode metric", http.StatusInternalServerError)
+	}
 }
 
-// Update Metrics
 func UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 	var metric models.Metric
-	err := json.NewDecoder(r.Body).Decode(&metric)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&metric); err != nil {
+		log.Printf("Invalid JSON data: %v", err)
 		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
-		log.Println("Invalid JSON data:", err)
 		return
 	}
-	log.Println("Updated Metric:", metric)
-	models.UpdateMetric(metric)
-	json.NewEncoder(w).Encode(metric)
+
+	if err := models.UpdateMetric(metric); err != nil {
+		log.Printf("Failed to update metric: %v", err)
+		http.Error(w, "Failed to update metric", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(metric); err != nil {
+		log.Printf("Failed to encode metric: %v", err)
+		http.Error(w, "Failed to encode metric", http.StatusInternalServerError)
+	}
 }
 
-// Routes
 func RegisterMetricsRoutes(router *mux.Router) {
 	router.HandleFunc("/metrics", FetchMetrics).Methods("GET")
 	router.HandleFunc("/metrics", SaveMetrics).Methods("POST")
