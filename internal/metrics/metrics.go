@@ -5,42 +5,43 @@ import (
 )
 
 type SystemMetrics struct {
-	Timestamp time.Time    `json:"timestamp"`
-	CPU       CPUMetrics   `json:"cpu"`
-	Memory    MemoryMetrics `json:"memory"`
-	Disk      DiskMetrics   `json:"disk"`
-	Network   NetworkMetrics `json:"network"`
-	Process   []ProcessMetrics `json:"processes"`
-	Uptime    UptimeMetrics `json:"uptime"`
+	Timestamp   time.Time          `json:"timestamp"`
+	CPU         CPUMetrics         `json:"cpu"`
+	Memory      MemoryMetrics      `json:"memory"`
+	Disk        DiskMetrics        `json:"disk"`
+	Network     NetworkMetrics     `json:"network"`
+	Process     []ProcessMetrics   `json:"processes"`
+	Uptime      UptimeMetrics      `json:"uptime"`
+	HealthCheck HealthCheckMetrics `json:"health_checks"`
 }
 
 type CPUMetrics struct {
-	TotalUsage    float64            `json:"total_usage"`
-	PerCoreUsage  map[string]float64 `json:"per_core_usage"`
-	LoadAverage   [3]float64         `json:"load_average"`
+	TotalUsage   float64            `json:"total_usage"`
+	PerCoreUsage map[string]float64 `json:"per_core_usage"`
+	LoadAverage  [3]float64         `json:"load_average"`
 }
 
 type MemoryMetrics struct {
-	Total       uint64 `json:"total"`
-	Used        uint64 `json:"used"`
-	Free        uint64 `json:"free"`
+	Total       uint64  `json:"total"`
+	Used        uint64  `json:"used"`
+	Free        uint64  `json:"free"`
 	UsedPercent float64 `json:"used_percent"`
-	SwapTotal   uint64 `json:"swap_total"`
-	SwapUsed    uint64 `json:"swap_used"`
-	SwapFree    uint64 `json:"swap_free"`
+	SwapTotal   uint64  `json:"swap_total"`
+	SwapUsed    uint64  `json:"swap_used"`
+	SwapFree    uint64  `json:"swap_free"`
 }
 
 type DiskMetrics struct {
-	Partitions []DiskPartition `json:"partitions"`
+	Partitions []DiskPartition   `json:"partitions"`
 	IOCounters map[string]DiskIO `json:"io_counters"`
 }
 
 type DiskPartition struct {
-	Device     string  `json:"device"`
-	Mountpoint string  `json:"mountpoint"`
-	Total      uint64  `json:"total"`
-	Used       uint64  `json:"used"`
-	Free       uint64  `json:"free"`
+	Device      string  `json:"device"`
+	Mountpoint  string  `json:"mountpoint"`
+	Total       uint64  `json:"total"`
+	Used        uint64  `json:"used"`
+	Free        uint64  `json:"free"`
 	UsedPercent float64 `json:"used_percent"`
 }
 
@@ -69,15 +70,15 @@ type NetworkInterface struct {
 }
 
 type ProcessMetrics struct {
-	PID         int32   `json:"pid"`
-	Name        string  `json:"name"`
-	Username    string  `json:"username"`
-	CPUPercent  float64 `json:"cpu_percent"`
-	MemoryUsed  uint64  `json:"memory_used"`
-	Status      string  `json:"status"`
-	CreateTime  int64   `json:"create_time"`
-	NumThreads  int32   `json:"num_threads"`
-	IOCounters  ProcessIO `json:"io_counters,omitempty"`
+	PID        int32     `json:"pid"`
+	Name       string    `json:"name"`
+	Username   string    `json:"username"`
+	CPUPercent float64   `json:"cpu_percent"`
+	MemoryUsed uint64    `json:"memory_used"`
+	Status     string    `json:"status"`
+	CreateTime int64     `json:"create_time"`
+	NumThreads int32     `json:"num_threads"`
+	IOCounters ProcessIO `json:"io_counters,omitempty"`
 }
 
 type ProcessIO struct {
@@ -88,6 +89,6 @@ type ProcessIO struct {
 }
 
 type UptimeMetrics struct {
-	Uptime  float64 `json:"uptime"`
-	BootTime uint64 `json:"boot_time"`
+	Uptime   float64 `json:"uptime"`
+	BootTime uint64  `json:"boot_time"`
 }

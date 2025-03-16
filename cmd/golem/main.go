@@ -30,13 +30,15 @@ func main() {
 	collector := collector.NewCollector(metricStorage)
 	go collector.Start(ctx, 5*time.Second)
 
-	apiServer := api.NewServer(metricStorage)
+	healthCheckCollector := collector.NewHealthCheckCollector(metricStorage)
+	go healthCheckCollector.Start(ctx)
+
+	apiServer := api.NewServer(metricStorage, metricStorage, healthCheckCollector)
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: apiServer.Router(),
 	}
 
-	// Check if static files directory exists
 	staticDir := "web/static"
 	if _, err := os.Stat(staticDir); os.IsNotExist(err) {
 		log.Printf("Warning: Static files directory '%s' does not exist", staticDir)

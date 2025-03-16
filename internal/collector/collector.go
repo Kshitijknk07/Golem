@@ -20,6 +20,10 @@ type Collector struct {
 	storage storage.MetricStorage
 }
 
+func (c *Collector) NewHealthCheckCollector(storage storage.HealthCheckStorage) *HealthCheckCollector {
+	return NewHealthCheckCollector(storage)
+}
+
 func NewCollector(storage storage.MetricStorage) *Collector {
 	return &Collector{
 		storage: storage,
