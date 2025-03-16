@@ -1,15 +1,14 @@
 # Golem Monitoring System
 
-A monitoring system built with Go, providing real-time metrics collection, alerting, and visualization capabilities.
+A lightweight system monitoring tool built with Go, providing real-time metrics collection and visualization for your computer's performance.
 
 ## Overview
 
-Golem is a lightweight yet powerful monitoring system that combines:
-- Real-time metrics collection and storage
-- WebSocket-based live updates
-- JWT-secured API endpoints
-- SQLite persistence
-- Prometheus integration
+Golem is a simple yet effective monitoring system that provides:
+- Real-time system metrics collection (CPU, memory, disk, network)
+- Process monitoring with detailed statistics
+- Clean and intuitive web dashboard
+- RESTful API for metrics access
 
 ## Architecture
 
