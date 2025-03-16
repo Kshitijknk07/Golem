@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"Golem/internal/metrics"
+	"Golem/internal/plugin"
 	"Golem/internal/storage"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -20,12 +21,13 @@ import (
 )
 
 type HealthCheckCollector struct {
-	storage       storage.HealthCheckStorage
-	client        *http.Client
-	checkInterval time.Duration
-	mu            sync.RWMutex
-	checks        map[string]metrics.HealthCheckConfig
-	results       map[string]metrics.HealthCheckResult
+	storage        storage.HealthCheckStorage
+	client         *http.Client
+	checkInterval  time.Duration
+	mu             sync.RWMutex
+	checks         map[string]metrics.HealthCheckConfig
+	results        map[string]metrics.HealthCheckResult
+	pluginRegistry *plugin.Registry
 }
 
 func NewHealthCheckCollector(storage storage.HealthCheckStorage) *HealthCheckCollector {
@@ -41,12 +43,15 @@ func NewHealthCheckCollector(storage storage.HealthCheckStorage) *HealthCheckCol
 		Timeout:   10 * time.Second,
 	}
 
+	registry := plugin.NewRegistry()
+
 	return &HealthCheckCollector{
-		storage:       storage,
-		client:        client,
-		checkInterval: 1 * time.Minute,
-		checks:        make(map[string]metrics.HealthCheckConfig),
-		results:       make(map[string]metrics.HealthCheckResult),
+		storage:        storage,
+		client:         client,
+		checkInterval:  1 * time.Minute,
+		checks:         make(map[string]metrics.HealthCheckConfig),
+		results:        make(map[string]metrics.HealthCheckResult),
+		pluginRegistry: registry,
 	}
 }
 
@@ -122,6 +127,8 @@ func (c *HealthCheckCollector) performCheck(check metrics.HealthCheckConfig) {
 		c.performDatabaseCheck(&result, check)
 	case metrics.APICheck:
 		c.performAPICheck(&result, check)
+	case "plugin":
+		c.performPluginCheck(&result, check)
 	default:
 		result.Status = metrics.StatusUnknown
 		result.Message = "Unknown check type"
@@ -242,6 +249,31 @@ func (c *HealthCheckCollector) performDatabaseCheck(result *metrics.HealthCheckR
 
 func (c *HealthCheckCollector) performAPICheck(result *metrics.HealthCheckResult, check metrics.HealthCheckConfig) {
 	c.performHTTPCheck(result, check)
+}
+
+func (c *HealthCheckCollector) performPluginCheck(result *metrics.HealthCheckResult, check metrics.HealthCheckConfig) {
+	pluginName := check.PluginName
+	if pluginName == "" {
+		result.Status = metrics.StatusUnknown
+		result.Message = "No plugin specified"
+		return
+	}
+
+	plugin, exists := c.pluginRegistry.Get(pluginName)
+	if !exists {
+		result.Status = metrics.StatusUnknown
+		result.Message = fmt.Sprintf("Plugin '%s' not found", pluginName)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), check.Timeout)
+	defer cancel()
+
+	status, message, responseTime := plugin.Execute(ctx, check.Target, check.Timeout)
+
+	result.Status = status
+	result.Message = message
+	result.ResponseTime = responseTime
 }
 
 func (c *HealthCheckCollector) GetHealthCheckResults() metrics.HealthCheckMetrics {

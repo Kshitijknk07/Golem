@@ -89,5 +89,3 @@ health_checks:
   "expectCode": 200
 }
 ```
-### Flowchart
-image.png
