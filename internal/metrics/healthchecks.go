@@ -34,6 +34,7 @@ type HealthCheckConfig struct {
 	Body       string            `json:"body,omitempty"`
 	ExpectCode int               `json:"expect_code,omitempty"`
 	ExpectBody string            `json:"expect_body,omitempty"`
+	PluginName string            `json:"plugin_name,omitempty"`
 	Enabled    bool              `json:"enabled"`
 	CreatedAt  time.Time         `json:"created_at"`
 	UpdatedAt  time.Time         `json:"updated_at"`
