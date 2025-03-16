@@ -102,6 +102,3 @@ Example JSON payload for creating a new health check:
   "method": "GET",
   "expectCode": 200
 }
-```
-### Flowchart
-image.png
