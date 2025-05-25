@@ -35,7 +35,7 @@ func main() {
 
 	apiServer := api.NewServer(metricStorage, metricStorage, healthCheckCollector)
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":8899",
 		Handler: apiServer.Router(),
 	}
 
@@ -47,7 +47,7 @@ func main() {
 	}
 
 	go func() {
-		log.Println("Starting Golem monitoring server on http://localhost:8080")
+		log.Println("Starting Golem monitoring server on http://localhost:8899")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Could not start server: %v", err)
 		}
