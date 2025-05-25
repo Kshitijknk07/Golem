@@ -1,6 +1,6 @@
 # Golem - System Monitoring Platform
 
-**Golem** is a complete, production-ready system monitoring solution built in Go. It collects real-time system metrics, performs health checks, and provides a responsive web dashboard for visualization and management.
+**Golem** is a complete, system monitoring solution built in Go. It collects real-time system metrics, performs health checks, and provides a responsive web dashboard for visualization and management.
 
 ---
 
