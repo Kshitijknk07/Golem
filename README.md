@@ -10,8 +10,9 @@
 - **Health Checks**: HTTP, TCP, database, and API endpoint checks with configurable intervals and timeouts.
 - **Web Dashboard**: Real-time, interactive dashboard for metrics and health checks.
 - **REST API**: Access all metrics and health check data programmatically.
+- **Authentication**: JWT-based authentication with role-based access control.
+- **Persistent Storage**: SQLite-based storage for metrics, health checks, and user data.
 - **Extensible**: Plugin system for custom health checks.
-- **In-memory Storage**: Fast, simple storage (data is lost on restart).
 - **Easy Setup**: No external dependencies required for basic usage.
 
 ---
@@ -39,6 +40,7 @@ Open your browser and go to [http://localhost:8899](http://localhost:8899).
 - **Port**: Default is `8899`. Change in `.env` or `main.go`.
 - **Static Files**: Served from `web/static`.
 - **Logging**: Basic info-level logging to stdout.
+- **JWT Secret**: Set `JWT_SECRET` in `.env` for production (default is a placeholder).
 
 You can create a `.env` file in `cmd/golem/`:
 
@@ -46,6 +48,7 @@ You can create a `.env` file in `cmd/golem/`:
 GOLEM_PORT=8899
 GOLEM_STATIC_DIR=web/static
 GOLEM_LOG_LEVEL=info
+JWT_SECRET=your_secure_jwt_secret
 ```
 
 ---
@@ -61,6 +64,11 @@ GOLEM_LOG_LEVEL=info
 - `GET /api/metrics/history?duration=1h` — Metrics history
 - `GET /api/health-checks` — List health checks
 - `POST /api/health-checks` — Create a health check
+- `POST /api/auth/register` — Register a new user
+- `POST /api/auth/login` — Login and get JWT token
+- `GET /api/auth/users` — List users (admin only)
+- `PUT /api/auth/users/{id}` — Update a user (admin only)
+- `DELETE /api/auth/users/{id}` — Delete a user (admin only)
 
 ---
 
@@ -69,9 +77,10 @@ GOLEM_LOG_LEVEL=info
 ```
 cmd/golem/         # Main entrypoint
 internal/api/      # REST API server
+internal/auth/     # Authentication and user management
 internal/collector # Metrics and health check collectors
 internal/metrics/  # Data models
-internal/storage/  # In-memory storage
+internal/storage/  # SQLite storage
 web/static/        # Dashboard frontend (HTML/CSS/JS)
 ```
 
@@ -80,14 +89,12 @@ web/static/        # Dashboard frontend (HTML/CSS/JS)
 ## Extending Golem
 
 - **Plugins**: Implement the `CheckPlugin` interface in Go and register your plugin for custom health checks.
-- **Storage**: Only in-memory storage is included. Add your own persistent backend if needed.
+- **Storage**: SQLite storage is included. Add your own persistent backend if needed.
 
 ---
 
 ## Limitations
 
-- **No persistent storage**: All data is lost when the server restarts.
-- **No authentication**: The dashboard and API are open by default.
 - **Single-node**: No clustering or distributed features.
 
 ---
@@ -102,6 +109,8 @@ MIT License
 
 - [gopsutil](https://github.com/shirou/gopsutil) for system metrics
 - [gorilla/mux](https://github.com/gorilla/mux) for HTTP routing
+- [golang-jwt/jwt](https://github.com/golang-jwt/jwt) for JWT authentication
+- [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) for SQLite storage
 
 ---
 
