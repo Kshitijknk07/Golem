@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -56,18 +57,7 @@ func NewHealthCheckCollector(storage storage.HealthCheckStorage) *HealthCheckCol
 }
 
 func (c *HealthCheckCollector) Start(ctx context.Context) {
-	configs := c.storage.GetAllHealthCheckConfigs()
-	for _, config := range configs {
-		c.checks[config.ID] = config
-	}
-
-	for _, check := range c.checks {
-		if check.Enabled {
-			go c.runCheck(ctx, check)
-		}
-	}
-
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -75,60 +65,52 @@ func (c *HealthCheckCollector) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			configs := c.storage.GetAllHealthCheckConfigs()
+			configs, err := c.storage.GetAllHealthCheckConfigs()
+			if err != nil {
+				log.Printf("Error getting health check configs: %v", err)
+				continue
+			}
 
-			c.mu.Lock()
 			for _, config := range configs {
-				existingCheck, exists := c.checks[config.ID]
-				if !exists || existingCheck.UpdatedAt.Before(config.UpdatedAt) {
-					c.checks[config.ID] = config
-					if config.Enabled {
-						go c.runCheck(ctx, config)
-					}
+				if !config.Enabled {
+					continue
+				}
+
+				result, err := c.runHealthCheck(config)
+				if err != nil {
+					log.Printf("Error running health check %s: %v", config.Name, err)
+					continue
+				}
+
+				if err := c.storage.StoreHealthCheckResult(result); err != nil {
+					log.Printf("Error storing health check result for %s: %v", config.Name, err)
 				}
 			}
-			c.mu.Unlock()
 		}
 	}
 }
 
-func (c *HealthCheckCollector) runCheck(ctx context.Context, check metrics.HealthCheckConfig) {
-	ticker := time.NewTicker(check.Interval)
-	defer ticker.Stop()
-
-	c.performCheck(check)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			c.performCheck(check)
-		}
-	}
-}
-
-func (c *HealthCheckCollector) performCheck(check metrics.HealthCheckConfig) {
+func (c *HealthCheckCollector) runHealthCheck(config metrics.HealthCheckConfig) (metrics.HealthCheckResult, error) {
 	var result metrics.HealthCheckResult
-	result.ID = check.ID
-	result.Name = check.Name
-	result.Type = check.Type
-	result.Target = check.Target
+	result.ID = config.ID
+	result.Name = config.Name
+	result.Type = config.Type
+	result.Target = config.Target
 	result.LastChecked = time.Now()
 
 	startTime := time.Now()
 
-	switch check.Type {
+	switch config.Type {
 	case metrics.HTTPCheck:
-		c.performHTTPCheck(&result, check)
+		c.performHTTPCheck(&result, config)
 	case metrics.TCPCheck:
-		c.performTCPCheck(&result, check)
+		c.performTCPCheck(&result, config)
 	case metrics.DatabaseCheck:
-		c.performDatabaseCheck(&result, check)
+		c.performDatabaseCheck(&result, config)
 	case metrics.APICheck:
-		c.performAPICheck(&result, check)
+		c.performAPICheck(&result, config)
 	case "plugin":
-		c.performPluginCheck(&result, check)
+		c.performPluginCheck(&result, config)
 	default:
 		result.Status = metrics.StatusUnknown
 		result.Message = "Unknown check type"
@@ -136,11 +118,7 @@ func (c *HealthCheckCollector) performCheck(check metrics.HealthCheckConfig) {
 
 	result.ResponseTime = time.Since(startTime)
 
-	c.mu.Lock()
-	c.results[check.ID] = result
-	c.mu.Unlock()
-
-	c.storage.StoreHealthCheckResult(result)
+	return result, nil
 }
 
 func (c *HealthCheckCollector) performHTTPCheck(result *metrics.HealthCheckResult, check metrics.HealthCheckConfig) {
@@ -322,7 +300,7 @@ func (c *HealthCheckCollector) AddHealthCheck(config metrics.HealthCheckConfig) 
 	c.checks[config.ID] = config
 	c.mu.Unlock()
 
-	go c.runCheck(context.Background(), config)
+	go c.runHealthCheck(config)
 
 	return nil
 }

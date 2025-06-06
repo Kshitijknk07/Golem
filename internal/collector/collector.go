@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -41,9 +42,13 @@ func (c *Collector) Start(ctx context.Context, interval time.Duration) {
 		case <-ticker.C:
 			metrics, err := c.collectMetrics()
 			if err != nil {
+				log.Printf("Error collecting metrics: %v", err)
 				continue
 			}
-			c.storage.StoreMetrics(metrics)
+
+			if err := c.storage.StoreMetrics(metrics); err != nil {
+				log.Printf("Error storing metrics: %v", err)
+			}
 		}
 	}
 }

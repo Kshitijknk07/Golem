@@ -47,7 +47,11 @@ func (s *Server) Router() http.Handler {
 }
 
 func (s *Server) getLatestMetrics(w http.ResponseWriter, r *http.Request) {
-	metrics := s.storage.GetLatestMetrics()
+	metrics, err := s.storage.GetLatestMetrics()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get latest metrics: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(metrics)
@@ -64,14 +68,22 @@ func (s *Server) getMetricsHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	metrics := s.storage.GetMetricsHistory(duration)
+	metrics, err := s.storage.GetMetricsHistory(duration)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get metrics history: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(metrics)
 }
 
 func (s *Server) getHealthChecks(w http.ResponseWriter, r *http.Request) {
-	results := s.healthCheckCollector.GetHealthCheckResults()
+	results, err := s.healthCheckStorage.GetAllHealthCheckResults()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get health checks: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
@@ -178,7 +190,11 @@ func (s *Server) getHealthCheckHistory(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	history := s.healthCheckStorage.GetHealthCheckHistory(id, duration)
+	history, err := s.healthCheckStorage.GetHealthCheckHistory(id, duration)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get health check history: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(history)

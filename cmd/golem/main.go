@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -25,7 +26,19 @@ func main() {
 		log.Printf("Current working directory: %s", cwd)
 	}
 
-	metricStorage := storage.NewMemoryStorage()
+	// Create data directory if it doesn't exist
+	dataDir := filepath.Join(cwd, "data")
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		log.Fatalf("Failed to create data directory: %v", err)
+	}
+
+	// Initialize SQLite storage
+	dbPath := filepath.Join(dataDir, "golem.db")
+	metricStorage, err := storage.NewSQLiteStorage(dbPath)
+	if err != nil {
+		log.Fatalf("Failed to initialize SQLite storage: %v", err)
+	}
+	defer metricStorage.Close()
 
 	collector := collector.NewCollector(metricStorage)
 	go collector.Start(ctx, 5*time.Second)

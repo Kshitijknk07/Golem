@@ -9,20 +9,20 @@ import (
 )
 
 type MetricStorage interface {
-	StoreMetrics(metrics metrics.SystemMetrics)
-	GetLatestMetrics() metrics.SystemMetrics
-	GetMetricsHistory(duration time.Duration) []metrics.SystemMetrics
+	StoreMetrics(metrics metrics.SystemMetrics) error
+	GetLatestMetrics() (metrics.SystemMetrics, error)
+	GetMetricsHistory(duration time.Duration) ([]metrics.SystemMetrics, error)
 }
 
 type HealthCheckStorage interface {
 	StoreHealthCheckConfig(config metrics.HealthCheckConfig) error
 	GetHealthCheckConfig(id string) (metrics.HealthCheckConfig, error)
-	GetAllHealthCheckConfigs() []metrics.HealthCheckConfig
+	GetAllHealthCheckConfigs() ([]metrics.HealthCheckConfig, error)
 	DeleteHealthCheckConfig(id string) error
-	StoreHealthCheckResult(result metrics.HealthCheckResult)
+	StoreHealthCheckResult(result metrics.HealthCheckResult) error
 	GetHealthCheckResult(id string) (metrics.HealthCheckResult, error)
-	GetAllHealthCheckResults() []metrics.HealthCheckResult
-	GetHealthCheckHistory(id string, duration time.Duration) []metrics.HealthCheckHistoryEntry
+	GetAllHealthCheckResults() ([]metrics.HealthCheckResult, error)
+	GetHealthCheckHistory(id string, duration time.Duration) ([]metrics.HealthCheckHistoryEntry, error)
 }
 
 type MemoryStorage struct {
@@ -48,7 +48,7 @@ func NewMemoryStorage() *MemoryStorage {
 	}
 }
 
-func (s *MemoryStorage) StoreMetrics(m metrics.SystemMetrics) {
+func (s *MemoryStorage) StoreMetrics(m metrics.SystemMetrics) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,21 +58,23 @@ func (s *MemoryStorage) StoreMetrics(m metrics.SystemMetrics) {
 	if len(s.metricsHistory) > s.maxHistory {
 		s.metricsHistory = s.metricsHistory[1:]
 	}
+
+	return nil
 }
 
-func (s *MemoryStorage) GetLatestMetrics() metrics.SystemMetrics {
+func (s *MemoryStorage) GetLatestMetrics() (metrics.SystemMetrics, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.latestMetrics
+	return s.latestMetrics, nil
 }
 
-func (s *MemoryStorage) GetMetricsHistory(duration time.Duration) []metrics.SystemMetrics {
+func (s *MemoryStorage) GetMetricsHistory(duration time.Duration) ([]metrics.SystemMetrics, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	if len(s.metricsHistory) == 0 {
-		return []metrics.SystemMetrics{}
+		return []metrics.SystemMetrics{}, nil
 	}
 
 	cutoffTime := time.Now().Add(-duration)
@@ -85,7 +87,7 @@ func (s *MemoryStorage) GetMetricsHistory(duration time.Duration) []metrics.Syst
 		result = append([]metrics.SystemMetrics{s.metricsHistory[i]}, result...)
 	}
 
-	return result
+	return result, nil
 }
 
 func (s *MemoryStorage) StoreHealthCheckConfig(config metrics.HealthCheckConfig) error {
@@ -132,7 +134,7 @@ func (s *MemoryStorage) DeleteHealthCheckConfig(id string) error {
 	return nil
 }
 
-func (s *MemoryStorage) StoreHealthCheckResult(result metrics.HealthCheckResult) {
+func (s *MemoryStorage) StoreHealthCheckResult(result metrics.HealthCheckResult) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -157,6 +159,8 @@ func (s *MemoryStorage) StoreHealthCheckResult(result metrics.HealthCheckResult)
 	}
 
 	s.healthCheckHistory[result.ID] = history
+
+	return nil
 }
 
 func (s *MemoryStorage) GetHealthCheckResult(id string) (metrics.HealthCheckResult, error) {
@@ -173,7 +177,7 @@ func (s *MemoryStorage) GetHealthCheckResult(id string) (metrics.HealthCheckResu
 	return result, nil
 }
 
-func (s *MemoryStorage) GetAllHealthCheckResults() []metrics.HealthCheckResult {
+func (s *MemoryStorage) GetAllHealthCheckResults() ([]metrics.HealthCheckResult, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -183,20 +187,20 @@ func (s *MemoryStorage) GetAllHealthCheckResults() []metrics.HealthCheckResult {
 		results = append(results, result)
 	}
 
-	return results
+	return results, nil
 }
 
-func (s *MemoryStorage) GetHealthCheckHistory(id string, duration time.Duration) []metrics.HealthCheckHistoryEntry {
+func (s *MemoryStorage) GetHealthCheckHistory(id string, duration time.Duration) ([]metrics.HealthCheckHistoryEntry, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	history, exists := s.healthCheckHistory[id]
 	if !exists {
-		return []metrics.HealthCheckHistoryEntry{}
+		return []metrics.HealthCheckHistoryEntry{}, nil
 	}
 
 	if duration <= 0 {
-		return history
+		return history, nil
 	}
 
 	cutoffTime := time.Now().Add(-duration)
@@ -208,5 +212,5 @@ func (s *MemoryStorage) GetHealthCheckHistory(id string, duration time.Duration)
 		}
 	}
 
-	return result
+	return result, nil
 }
