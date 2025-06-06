@@ -1,299 +1,467 @@
-document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('add-health-check').addEventListener('click', showAddHealthCheckForm);
-    document.getElementById('cancel-health-check').addEventListener('click', resetHealthCheckForm);
-    document.getElementById('save-health-check').addEventListener('click', saveHealthCheck);
+// Authentication state
+let currentUser = null;
+let authToken = null;
 
-    updateMetrics();
-    updateHealthChecks();
+// DOM Elements
+const authSection = document.getElementById("auth-section");
+const loginForm = document.getElementById("login-form");
+const registerForm = document.getElementById("register-form");
+const userManagement = document.getElementById("user-management");
+const showRegisterLink = document.getElementById("show-register");
+const showLoginLink = document.getElementById("show-login");
 
-    setInterval(updateMetrics, 5000);
-    setInterval(updateHealthChecks, 30000);
+// Event Listeners
+document.addEventListener("DOMContentLoaded", function () {
+  // Check for existing auth token
+  const token = localStorage.getItem("authToken");
+  if (token) {
+    authToken = token;
+    validateToken();
+  }
+
+  // Form submissions
+  document.getElementById("login").addEventListener("submit", handleLogin);
+  document
+    .getElementById("register")
+    .addEventListener("submit", handleRegister);
+
+  // Toggle between login and register forms
+  showRegisterLink.addEventListener("click", function (e) {
+    e.preventDefault();
+    loginForm.style.display = "none";
+    registerForm.style.display = "block";
+  });
+
+  showLoginLink.addEventListener("click", function (e) {
+    e.preventDefault();
+    registerForm.style.display = "none";
+    loginForm.style.display = "block";
+  });
+
+  // Health check form handlers
+  document
+    .getElementById("add-health-check")
+    .addEventListener("click", showAddHealthCheckForm);
+  document
+    .getElementById("cancel-health-check")
+    .addEventListener("click", resetHealthCheckForm);
+  document
+    .getElementById("save-health-check")
+    .addEventListener("click", saveHealthCheck);
+
+  // Initial data load
+  if (authToken) {
+    loadData();
+  }
 });
 
-function formatBytes(bytes, decimals = 2) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+// Authentication Functions
+async function validateToken() {
+  try {
+    const response = await fetch("/api/auth/validate", {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.ok) {
+      const user = await response.json();
+      setCurrentUser(user);
+    } else {
+      logout();
+    }
+  } catch (error) {
+    console.error("Error validating token:", error);
+    logout();
+  }
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      authToken = data.token;
+      localStorage.setItem("authToken", authToken);
+      setCurrentUser(data.user);
+      loadData();
+    } else {
+      const error = await response.json();
+      alert(error.message || "Login failed");
+    }
+  } catch (error) {
+    console.error("Login error:", error);
+    alert("Login failed: " + error.message);
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const username = document.getElementById("reg-username").value;
+  const email = document.getElementById("reg-email").value;
+  const password = document.getElementById("reg-password").value;
+
+  try {
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, email, password }),
+    });
+
+    if (response.ok) {
+      alert("Registration successful! Please login.");
+      registerForm.style.display = "none";
+      loginForm.style.display = "block";
+    } else {
+      const error = await response.json();
+      alert(error.message || "Registration failed");
+    }
+  } catch (error) {
+    console.error("Registration error:", error);
+    alert("Registration failed: " + error.message);
+  }
+}
+
+function logout() {
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem("authToken");
+  authSection.style.display = "block";
+  userManagement.style.display = "none";
+  document.querySelectorAll(".card:not(#auth-section)").forEach((card) => {
+    card.style.display = "none";
+  });
+}
+
+function setCurrentUser(user) {
+  currentUser = user;
+  authSection.style.display = "none";
+  document.querySelectorAll(".card:not(#auth-section)").forEach((card) => {
+    card.style.display = "block";
+  });
+
+  // Show user management only for admin users
+  if (user.role === "admin") {
+    userManagement.style.display = "block";
+    loadUsers();
+  } else {
+    userManagement.style.display = "none";
+  }
+}
+
+// User Management Functions
+async function loadUsers() {
+  if (!currentUser || currentUser.role !== "admin") return;
+
+  try {
+    const response = await fetch("/api/users", {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.ok) {
+      const users = await response.json();
+      const tbody = document.getElementById("users-body");
+      tbody.innerHTML = users
+        .map(
+          (user) => `
+                <tr>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${user.role}</td>
+                    <td class="user-actions">
+                        <button class="btn edit-btn" onclick="editUser('${user.id}')">Edit</button>
+                        <button class="btn delete-btn" onclick="deleteUser('${user.id}')">Delete</button>
+                    </td>
+                </tr>
+            `
+        )
+        .join("");
+    }
+  } catch (error) {
+    console.error("Error loading users:", error);
+    alert("Failed to load users: " + error.message);
+  }
+}
+
+async function editUser(userId) {
+  // TODO: Implement user editing
+  alert("User editing not implemented yet");
+}
+
+async function deleteUser(userId) {
+  if (!confirm("Are you sure you want to delete this user?")) return;
+
+  try {
+    const response = await fetch(`/api/users/${userId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.ok) {
+      loadUsers();
+    } else {
+      const error = await response.json();
+      alert(error.message || "Failed to delete user");
+    }
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    alert("Failed to delete user: " + error.message);
+  }
+}
+
+// Data Loading Functions
+async function loadData() {
+  if (!authToken) return;
+
+  try {
+    await Promise.all([loadMetrics(), loadProcesses(), loadHealthChecks()]);
+  } catch (error) {
+    console.error("Error loading data:", error);
+    alert("Failed to load data: " + error.message);
+  }
+}
+
+async function loadMetrics() {
+  try {
+    const response = await fetch("/api/metrics/latest", {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.ok) {
+      const metrics = await response.json();
+      updateMetricsDisplay(metrics);
+    }
+  } catch (error) {
+    console.error("Error loading metrics:", error);
+  }
+}
+
+async function loadProcesses() {
+  try {
+    const response = await fetch("/api/metrics/processes", {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.ok) {
+      const processes = await response.json();
+      updateProcessesDisplay(processes);
+    }
+  } catch (error) {
+    console.error("Error loading processes:", error);
+  }
+}
+
+async function loadHealthChecks() {
+  try {
+    const response = await fetch("/api/health-checks", {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.ok) {
+      const checks = await response.json();
+      updateHealthChecksDisplay(checks);
+    }
+  } catch (error) {
+    console.error("Error loading health checks:", error);
+  }
+}
+
+// Display Update Functions
+function updateMetricsDisplay(metrics) {
+  document.getElementById("cpu-usage").textContent = `${metrics.cpu.usage}%`;
+  document.getElementById(
+    "memory-usage"
+  ).textContent = `${metrics.memory.used_percent}%`;
+  document.getElementById(
+    "disk-usage"
+  ).textContent = `${metrics.disk.used_percent}%`;
+  document.getElementById("uptime").textContent = formatUptime(metrics.uptime);
+
+  // Update detailed sections
+  updateCPUDetails(metrics.cpu);
+  updateMemoryDetails(metrics.memory);
+  updateDiskDetails(metrics.disk);
+  updateNetworkDetails(metrics.network);
+}
+
+function updateProcessesDisplay(processes) {
+  const tbody = document.getElementById("processes-body");
+  tbody.innerHTML = processes
+    .map(
+      (process) => `
+        <tr>
+            <td>${process.pid}</td>
+            <td>${process.name}</td>
+            <td>${process.cpu_percent.toFixed(1)}%</td>
+            <td>${formatBytes(process.memory_usage)}</td>
+            <td>${process.status}</td>
+        </tr>
+    `
+    )
+    .join("");
+}
+
+function updateHealthChecksDisplay(checks) {
+  const tbody = document.getElementById("health-checks-body");
+  tbody.innerHTML = checks
+    .map(
+      (check) => `
+        <tr>
+            <td>${check.name}</td>
+            <td>${check.type}</td>
+            <td>${check.target}</td>
+            <td class="status-${check.status.toLowerCase()}">${
+        check.status
+      }</td>
+            <td>${check.response_time}ms</td>
+            <td>${new Date(check.last_check).toLocaleString()}</td>
+            <td>
+                <button class="btn" onclick="editHealthCheck('${
+                  check.id
+                }')">Edit</button>
+                <button class="btn delete-btn" onclick="deleteHealthCheck('${
+                  check.id
+                }')">Delete</button>
+            </td>
+        </tr>
+    `
+    )
+    .join("");
+
+  // Update summary metrics
+  const total = checks.length;
+  const healthy = checks.filter((c) => c.status === "HEALTHY").length;
+  const warning = checks.filter((c) => c.status === "WARNING").length;
+  const down = checks.filter((c) => c.status === "DOWN").length;
+
+  document.getElementById("total-services").textContent = total;
+  document.getElementById("healthy-services").textContent = healthy;
+  document.getElementById("warning-services").textContent = warning;
+  document.getElementById("down-services").textContent = down;
+}
+
+// Utility Functions
+function formatBytes(bytes) {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 function formatUptime(seconds) {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${days}d ${hours}h ${minutes}m`;
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${days}d ${hours}h ${minutes}m`;
 }
 
-function updateMetrics() {
-    fetch('/api/metrics')
-        .then(response => response.json())
-        .then(data => {
-            // System Overview updates
-            document.getElementById('cpu-usage').textContent = `${data.cpu.total_usage.toFixed(1)}%`;
-            document.getElementById('memory-usage').textContent = `${data.memory.used_percent.toFixed(1)}%`;
-
-            // Disk usage calculation
-            let avgDiskUsage = 0;
-            if (data.disk.partitions.length > 0) {
-                avgDiskUsage = data.disk.partitions.reduce((sum, p) => sum + p.used_percent, 0) / data.disk.partitions.length;
-            }
-            document.getElementById('disk-usage').textContent = `${avgDiskUsage.toFixed(1)}%`;
-            document.getElementById('uptime').textContent = formatUptime(data.uptime.uptime);
-
-            // Detailed metrics updates
-            updateCpuDetails(data.cpu);
-            updateMemoryDetails(data.memory);
-            updateDiskDetails(data.disk);
-            updateNetworkDetails(data.network);
-            updateProcessDetails(data.processes);
-        })
-        .catch(console.error);
-}
-
-function updateCpuDetails(cpuData) {
-    let html = `<p>Load Average: ${cpuData.load_average.map(v => v.toFixed(2)).join(', ')}</p><div class="metric-row">`;
-    Object.entries(cpuData.per_core_usage).forEach(([core, usage]) => {
-        html += `
-            <div class="metric-box">
-                <div class="metric-title">Core ${core}</div>
-                <div class="metric-value">${usage.toFixed(1)}%</div>
-            </div>`;
-    });
-    document.getElementById('cpu-details').innerHTML = html + '</div>';
-}
-
-function updateMemoryDetails(memoryData) {
-    const html = `
-        <div class="metric-row">
-            <div class="metric-box">
-                <div class="metric-title">Total Memory</div>
-                <div class="metric-value">${formatBytes(memoryData.total)}</div>
-            </div>
-            <div class="metric-box">
-                <div class="metric-title">Used Memory</div>
-                <div class="metric-value">${formatBytes(memoryData.used)}</div>
-            </div>
-            <div class="metric-box">
-                <div class="metric-title">Free Memory</div>
-                <div class="metric-value">${formatBytes(memoryData.free)}</div>
-            </div>
-            <div class="metric-box">
-                <div class="metric-title">Swap Used</div>
-                <div class="metric-value">${formatBytes(memoryData.swap_used)}</div>
-            </div>
-        </div>`;
-    document.getElementById('memory-details').innerHTML = html;
-}
-
-function updateDiskDetails(diskData) {
-    let html = '<div class="metric-row">';
-    diskData.partitions.forEach(partition => {
-        html += `
-            <div class="metric-box">
-                <div class="metric-title">${partition.mountpoint}</div>
-                <div class="metric-value">${partition.used_percent.toFixed(1)}%</div>
-                <div>${formatBytes(partition.used)} / ${formatBytes(partition.total)}</div>
-            </div>`;
-    });
-    document.getElementById('disk-details').innerHTML = html + '</div>';
-}
-
-function updateNetworkDetails(networkData) {
-    let html = '<div class="metric-row">';
-    Object.entries(networkData.interfaces).forEach(([name, iface]) => {
-        html += `
-            <div class="metric-box">
-                <div class="metric-title">${name}</div>
-                <div>Sent: ${formatBytes(iface.bytes_sent)}</div>
-                <div>Received: ${formatBytes(iface.bytes_recv)}</div>
-                <div>Packets Sent: ${iface.packets_sent}</div>
-                <div>Packets Received: ${iface.packets_recv}</div>
-            </div>`;
-    });
-    document.getElementById('network-details').innerHTML = html + '</div>';
-}
-
-function updateProcessDetails(processes) {
-    let html = '';
-    processes.sort((a, b) => b.cpu_percent - a.cpu_percent)
-        .slice(0, 10)
-        .forEach(proc => {
-            html += `
-                <tr>
-                    <td>${proc.pid}</td>
-                    <td>${proc.name}</td>
-                    <td>${proc.cpu_percent.toFixed(1)}%</td>
-                    <td>${formatBytes(proc.memory_used)}</td>
-                    <td>${proc.status}</td>
-                </tr>`;
-        });
-    document.getElementById('processes-body').innerHTML = html || '<tr><td colspan="5">No process data available</td></tr>';
-}
-
-// Health Checks Management
+// Health Check Functions
 function showAddHealthCheckForm() {
-    document.getElementById('health-check-form').style.display = 'block';
-    document.getElementById('add-health-check').style.display = 'none';
-}
-
-function hideAddHealthCheckForm() {
-    document.getElementById('health-check-form').style.display = 'none';
-    document.getElementById('add-health-check').style.display = 'block';
+  document.getElementById("health-check-form").style.display = "block";
+  document.getElementById("add-health-check").style.display = "none";
 }
 
 function resetHealthCheckForm() {
-    hideAddHealthCheckForm();
-    document.getElementById('check-form').reset();
-    const saveButton = document.getElementById('save-health-check');
-    saveButton.textContent = 'Save';
-    saveButton.onclick = saveHealthCheck;
+  document.getElementById("health-check-form").style.display = "none";
+  document.getElementById("add-health-check").style.display = "block";
+  document.getElementById("check-form").reset();
 }
 
-function saveHealthCheck() {
-    const name = document.getElementById('check-name').value;
-    const type = document.getElementById('check-type').value;
-    const target = document.getElementById('check-url').value;
-    const interval = parseInt(document.getElementById('check-interval').value) * 1e9;
-    const timeout = parseInt(document.getElementById('check-timeout').value) * 1e9;
+async function saveHealthCheck() {
+  const name = document.getElementById("check-name").value;
+  const type = document.getElementById("check-type").value;
+  const target = document.getElementById("check-url").value;
+  const interval =
+    parseInt(document.getElementById("check-interval").value) * 1000000000;
+  const timeout =
+    parseInt(document.getElementById("check-timeout").value) * 1000000000;
 
-    if (!name || !target) {
-        alert('Name and URL/Host are required');
-        return;
-    }
+  if (!name || !target) {
+    alert("Name and URL/Host are required");
+    return;
+  }
 
-    const healthCheck = {
-        name: name,
-        type: type,
-        target: target,
-        interval: interval,
-        timeout: timeout,
-        enabled: true
-    };
+  const healthCheck = {
+    name,
+    type,
+    target,
+    interval,
+    timeout,
+  };
 
-    fetch('/api/health-checks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(healthCheck)
-    })
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to save health check');
-            resetHealthCheckForm();
-            updateHealthChecks();
-        })
-        .catch(error => {
-            console.error('Error saving health check:', error);
-            alert(`Error saving health check: ${error.message}`);
-        });
-}
-
-function updateHealthChecks() {
-    fetch('/api/health-checks')
-        .then(response => response.json())
-        .then(data => {
-            updateHealthChecksSummary(data);
-            updateHealthChecksTable(data.checks);
-        })
-        .catch(console.error);
-}
-
-function updateHealthChecksSummary(data) {
-    document.getElementById('total-services').textContent = data.checks.length;
-    document.getElementById('healthy-services').textContent = data.checks.filter(c => c.status === 'up').length;
-    document.getElementById('warning-services').textContent = data.checks.filter(c => c.status === 'warning').length;
-    document.getElementById('down-services').textContent = data.checks.filter(c => c.status === 'down').length;
-}
-
-function updateHealthChecksTable(checks) {
-    let html = '';
-    checks.forEach(check => {
-        html += `
-            <tr>
-                <td>${check.name}</td>
-                <td>${check.type}</td>
-                <td>${check.target}</td>
-                <td class="status-${check.status}">${check.status.toUpperCase()}</td>
-                <td>${(check.responseTime / 1e6).toFixed(2)}ms</td>
-                <td>${new Date(check.lastChecked).toLocaleString()}</td>
-                <td>
-                    <button onclick="editHealthCheck('${check.id}')" class="btn">Edit</button>
-                    <button onclick="deleteHealthCheck('${check.id}')" class="btn">Delete</button>
-                </td>
-            </tr>`;
+  try {
+    const response = await fetch("/api/health-checks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(healthCheck),
     });
-    document.getElementById('health-checks-body').innerHTML = html || '<tr><td colspan="7">No health checks configured</td></tr>';
-}
 
-function editHealthCheck(id) {
-    fetch(`/api/health-checks/${id}`)
-        .then(response => response.json())
-        .then(check => {
-            document.getElementById('check-name').value = check.name;
-            document.getElementById('check-type').value = check.type;
-            document.getElementById('check-url').value = check.target;
-            document.getElementById('check-interval').value = Math.floor(check.interval / 1e9);
-            document.getElementById('check-timeout').value = Math.floor(check.timeout / 1e9);
-
-            showAddHealthCheckForm();
-            const saveButton = document.getElementById('save-health-check');
-            saveButton.textContent = 'Update';
-            saveButton.onclick = () => updateExistingHealthCheck(id);
-        })
-        .catch(error => {
-            console.error('Error fetching health check:', error);
-            alert(`Error fetching health check: ${error.message}`);
-        });
-}
-
-function updateExistingHealthCheck(id) {
-    const name = document.getElementById('check-name').value;
-    const type = document.getElementById('check-type').value;
-    const target = document.getElementById('check-url').value;
-    const interval = parseInt(document.getElementById('check-interval').value) * 1e9;
-    const timeout = parseInt(document.getElementById('check-timeout').value) * 1e9;
-
-    if (!name || !target) {
-        alert('Name and URL/Host are required');
-        return;
+    if (response.ok) {
+      resetHealthCheckForm();
+      loadHealthChecks();
+    } else {
+      const error = await response.json();
+      alert(error.message || "Failed to create health check");
     }
-
-    const healthCheck = {
-        name: name,
-        type: type,
-        target: target,
-        interval: interval,
-        timeout: timeout,
-        enabled: true
-    };
-
-    fetch(`/api/health-checks/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(healthCheck)
-    })
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to update health check');
-            resetHealthCheckForm();
-            updateHealthChecks();
-        })
-        .catch(error => {
-            console.error('Error updating health check:', error);
-            alert(`Error updating health check: ${error.message}`);
-        });
+  } catch (error) {
+    console.error("Error creating health check:", error);
+    alert("Failed to create health check: " + error.message);
+  }
 }
 
-function deleteHealthCheck(id) {
-    if (confirm('Are you sure you want to delete this health check?')) {
-        fetch(`/api/health-checks/${id}`, { method: 'DELETE' })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to delete health check');
-                updateHealthChecks();
-            })
-            .catch(error => {
-                console.error('Error deleting health check:', error);
-                alert(`Error deleting health check: ${error.message}`);
-            });
+async function deleteHealthCheck(id) {
+  if (!confirm("Are you sure you want to delete this health check?")) return;
+
+  try {
+    const response = await fetch(`/api/health-checks/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    if (response.ok) {
+      loadHealthChecks();
+    } else {
+      const error = await response.json();
+      alert(error.message || "Failed to delete health check");
     }
+  } catch (error) {
+    console.error("Error deleting health check:", error);
+    alert("Failed to delete health check: " + error.message);
+  }
 }
 
+// Start periodic updates
+setInterval(() => {
+  if (authToken) {
+    loadData();
+  }
+}, 30000);

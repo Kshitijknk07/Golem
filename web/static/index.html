@@ -1,249 +1,309 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Golem Monitoring System</title>
-    <link rel="stylesheet" href="index.css">
-</head>
+    <link rel="stylesheet" href="index.css" />
+  </head>
 
-<body>
+  <body>
     <div class="container">
-        <h1>Golem Monitoring System</h1>
+      <h1>Golem Monitoring System</h1>
 
-        <div class="card">
-            <h2>System Overview</h2>
-            <div class="metric-row">
-                <div class="metric-box">
-                    <div class="metric-title">CPU Usage</div>
-                    <div class="metric-value" id="cpu-usage">-</div>
-                </div>
-                <div class="metric-box">
-                    <div class="metric-title">Memory Usage</div>
-                    <div class="metric-value" id="memory-usage">-</div>
-                </div>
-                <div class="metric-box">
-                    <div class="metric-title">Disk Usage</div>
-                    <div class="metric-value" id="disk-usage">-</div>
-                </div>
-                <div class="metric-box">
-                    <div class="metric-title">System Uptime</div>
-                    <div class="metric-value" id="uptime">-</div>
-                </div>
+      <!-- Authentication Section -->
+      <div id="auth-section" class="card">
+        <h2>Authentication</h2>
+        <div id="login-form">
+          <h3>Login</h3>
+          <form id="login">
+            <div class="form-group">
+              <label for="username">Username:</label>
+              <input type="text" id="username" required />
             </div>
-        </div>
-
-        <div class="card">
-            <h2>CPU Details</h2>
-            <div id="cpu-details"></div>
-        </div>
-
-        <div class="card">
-            <h2>Memory Details</h2>
-            <div id="memory-details"></div>
-        </div>
-
-        <div class="card">
-            <h2>Disk Details</h2>
-            <div id="disk-details"></div>
-        </div>
-
-        <div class="card">
-            <h2>Network Details</h2>
-            <div id="network-details"></div>
-        </div>
-
-        <div class="card">
-            <h2>Top Processes</h2>
-            <table class="processes-table">
-                <thead>
-                    <tr>
-                        <th>PID</th>
-                        <th>Name</th>
-                        <th>CPU %</th>
-                        <th>Memory</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="processes-body">
-                    <tr>
-                        <td colspan="5">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="card">
-            <h2>Health Checks & Service Monitoring</h2>
-            <div class="health-checks-summary">
-                <div class="metric-row">
-                    <div class="metric-box">
-                        <div class="metric-title">Total Services</div>
-                        <div class="metric-value" id="total-services">-</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-title">Healthy Services</div>
-                        <div class="metric-value" id="healthy-services">-</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-title">Warning Services</div>
-                        <div class="metric-value" id="warning-services">-</div>
-                    </div>
-                    <div class="metric-box">
-                        <div class="metric-title">Down Services</div>
-                        <div class="metric-value" id="down-services">-</div>
-                    </div>
-                </div>
+            <div class="form-group">
+              <label for="password">Password:</label>
+              <input type="password" id="password" required />
             </div>
-            <div class="health-checks-controls">
-                <button id="add-health-check" class="btn">Add Health Check</button>
-                <div id="health-check-form" class="health-check-form">
-                    <h3>Add New Health Check</h3>
-                    <form id="check-form">
-                        <div class="form-group">
-                            <label for="check-name">Name:</label>
-                            <input type="text" id="check-name" placeholder="My Service">
-                        </div>
-                        <div class="form-group">
-                            <label for="check-type">Type:</label>
-                            <select id="check-type">
-                                <option value="http">HTTP/HTTPS</option>
-                                <option value="tcp">TCP Service</option>
-                                <option value="database">Database</option>
-                                <option value="api">API Endpoint</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="check-url">URL/Host:</label>
-                            <input type="text" id="check-url" placeholder="https://example.com or hostname:port">
-                        </div>
-                        <div class="form-group">
-                            <label for="check-interval">Check Interval (seconds):</label>
-                            <input type="number" id="check-interval" value="60" min="10">
-                        </div>
-                        <div class="form-group">
-                            <label for="check-timeout">Timeout (seconds):</label>
-                            <input type="number" id="check-timeout" value="5" min="1">
-                        </div>
-                        <div class="form-group">
-                            <button type="button" id="save-health-check" class="btn">Save</button>
-                            <button type="button" id="cancel-health-check" class="btn">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <table class="health-checks-table processes-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Target</th>
-                        <th>Status</th>
-                        <th>Response Time</th>
-                        <th>Last Checked</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="health-checks-body">
-                    <tr>
-                        <td colspan="7">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
+            <button type="submit" class="btn">Login</button>
+          </form>
+          <p>
+            Don't have an account? <a href="#" id="show-register">Register</a>
+          </p>
         </div>
+        <div id="register-form" style="display: none">
+          <h3>Register</h3>
+          <form id="register">
+            <div class="form-group">
+              <label for="reg-username">Username:</label>
+              <input type="text" id="reg-username" required />
+            </div>
+            <div class="form-group">
+              <label for="reg-email">Email:</label>
+              <input type="email" id="reg-email" required />
+            </div>
+            <div class="form-group">
+              <label for="reg-password">Password:</label>
+              <input type="password" id="reg-password" required />
+            </div>
+            <button type="submit" class="btn">Register</button>
+          </form>
+          <p>Already have an account? <a href="#" id="show-login">Login</a></p>
+        </div>
+      </div>
+
+      <!-- User Management Section (Admin Only) -->
+      <div id="user-management" class="card" style="display: none">
+        <h2>User Management</h2>
+        <table class="processes-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-body">
+            <tr>
+              <td colspan="4">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- System Overview Section -->
+      <div class="card">
+        <h2>System Overview</h2>
+        <div class="metric-row">
+          <div class="metric-box">
+            <div class="metric-title">CPU Usage</div>
+            <div class="metric-value" id="cpu-usage">-</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-title">Memory Usage</div>
+            <div class="metric-value" id="memory-usage">-</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-title">Disk Usage</div>
+            <div class="metric-value" id="disk-usage">-</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-title">System Uptime</div>
+            <div class="metric-value" id="uptime">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CPU Details Section -->
+      <div class="card">
+        <h2>CPU Details</h2>
+        <div id="cpu-details"></div>
+      </div>
+
+      <!-- Memory Details Section -->
+      <div class="card">
+        <h2>Memory Details</h2>
+        <div id="memory-details"></div>
+      </div>
+
+      <!-- Disk Details Section -->
+      <div class="card">
+        <h2>Disk Details</h2>
+        <div id="disk-details"></div>
+      </div>
+
+      <!-- Network Details Section -->
+      <div class="card">
+        <h2>Network Details</h2>
+        <div id="network-details"></div>
+      </div>
+
+      <!-- Top Processes Section -->
+      <div class="card">
+        <h2>Top Processes</h2>
+        <table class="processes-table">
+          <thead>
+            <tr>
+              <th>PID</th>
+              <th>Name</th>
+              <th>CPU %</th>
+              <th>Memory</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="processes-body">
+            <tr>
+              <td colspan="5">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Health Checks Section -->
+      <div class="card">
+        <h2>Health Checks & Service Monitoring</h2>
+        <div class="health-checks-summary">
+          <div class="metric-row">
+            <div class="metric-box">
+              <div class="metric-title">Total Services</div>
+              <div class="metric-value" id="total-services">-</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-title">Healthy Services</div>
+              <div class="metric-value" id="healthy-services">-</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-title">Warning Services</div>
+              <div class="metric-value" id="warning-services">-</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-title">Down Services</div>
+              <div class="metric-value" id="down-services">-</div>
+            </div>
+          </div>
+        </div>
+        <div class="health-checks-controls">
+          <button id="add-health-check" class="btn">Add Health Check</button>
+          <div id="health-check-form" class="health-check-form">
+            <h3>Add New Health Check</h3>
+            <form id="check-form">
+              <div class="form-group">
+                <label for="check-name">Name:</label>
+                <input type="text" id="check-name" placeholder="My Service" />
+              </div>
+              <div class="form-group">
+                <label for="check-type">Type:</label>
+                <select id="check-type">
+                  <option value="http">HTTP/HTTPS</option>
+                  <option value="tcp">TCP Service</option>
+                  <option value="database">Database</option>
+                  <option value="api">API Endpoint</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="check-url">URL/Host:</label>
+                <input
+                  type="text"
+                  id="check-url"
+                  placeholder="https://example.com or hostname:port"
+                />
+              </div>
+              <div class="form-group">
+                <label for="check-interval">Check Interval (seconds):</label>
+                <input type="number" id="check-interval" value="60" min="10" />
+              </div>
+              <div class="form-group">
+                <label for="check-timeout">Timeout (seconds):</label>
+                <input type="number" id="check-timeout" value="5" min="1" />
+              </div>
+              <div class="form-group">
+                <button type="button" id="save-health-check" class="btn">
+                  Save
+                </button>
+                <button type="button" id="cancel-health-check" class="btn">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <table class="health-checks-table processes-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Target</th>
+              <th>Status</th>
+              <th>Response Time</th>
+              <th>Last Checked</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="health-checks-body">
+            <tr>
+              <td colspan="7">Loading...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <script src="index.js"></script>
-</body>
-
+  </body>
 </html>
 
 <script>
-    function editHealthCheck(id) {
-        fetch(`/api/health-checks/${id}`)
-            .then(response => response.json())
-            .then(check => {
-                document.getElementById('check-name').value = check.name;
-                document.getElementById('check-type').value = check.type;
-                document.getElementById('check-url').value = check.target;
-                document.getElementById('check-interval').value = Math.floor(check.interval / 1000000000);
-                document.getElementById('check-timeout').value = Math.floor(check.timeout / 1000000000);
+  function editHealthCheck(id) {
+    fetch(`/api/health-checks/${id}`)
+      .then((response) => response.json())
+      .then((check) => {
+        document.getElementById("check-name").value = check.name;
+        document.getElementById("check-type").value = check.type;
+        document.getElementById("check-url").value = check.target;
+        document.getElementById("check-interval").value = Math.floor(
+          check.interval / 1000000000
+        );
+        document.getElementById("check-timeout").value = Math.floor(
+          check.timeout / 1000000000
+        );
 
-                document.getElementById('health-check-form').style.display = 'block';
-                document.getElementById('add-health-check').style.display = 'none';
+        document.getElementById("health-check-form").style.display = "block";
+        document.getElementById("add-health-check").style.display = "none";
 
-                const saveButton = document.getElementById('save-health-check');
-                saveButton.textContent = 'Update';
-                saveButton.onclick = function () {
-                    updateExistingHealthCheck(id);
-                };
-            })
-            .catch(error => {
-                console.error('Error fetching health check details:', error);
-                alert('Error fetching health check details: ' + error.message);
-            });
-    }
-
-    function updateExistingHealthCheck(id) {
-        const name = document.getElementById('check-name').value;
-        const type = document.getElementById('check-type').value;
-        const target = document.getElementById('check-url').value;
-        const interval = parseInt(document.getElementById('check-interval').value) * 1000000000;
-        const timeout = parseInt(document.getElementById('check-timeout').value) * 1000000000;
-
-        if (!name || !target) {
-            alert('Name and URL/Host are required');
-            return;
-        }
-
-        const healthCheck = {
-            id: id,
-            name: name,
-            type: type,
-            target: target,
-            interval: interval,
-            timeout: timeout,
-            enabled: true
+        const saveButton = document.getElementById("save-health-check");
+        saveButton.textContent = "Update";
+        saveButton.onclick = function () {
+          updateExistingHealthCheck(id);
         };
+      })
+      .catch((error) => {
+        console.error("Error fetching health check details:", error);
+        alert("Error fetching health check details: " + error.message);
+      });
+  }
 
-        fetch(`/api/health-checks/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(healthCheck)
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to update health check');
-                }
-                return response.json();
-            })
-            .then(() => {
-                resetHealthCheckForm();
-                updateHealthChecks();
-            })
-            .catch(error => {
-                console.error('Error updating health check:', error);
-                alert('Error updating health check: ' + error.message);
-            });
+  function updateExistingHealthCheck(id) {
+    const name = document.getElementById("check-name").value;
+    const type = document.getElementById("check-type").value;
+    const target = document.getElementById("check-url").value;
+    const interval =
+      parseInt(document.getElementById("check-interval").value) * 1000000000;
+    const timeout =
+      parseInt(document.getElementById("check-timeout").value) * 1000000000;
+
+    if (!name || !target) {
+      alert("Name and URL/Host are required");
+      return;
     }
 
-    function resetHealthCheckForm() {
-        hideAddHealthCheckForm();
+    const healthCheck = {
+      name: name,
+      type: type,
+      target: target,
+      interval: interval,
+      timeout: timeout,
+    };
 
-        const saveButton = document.getElementById('save-health-check');
-        saveButton.textContent = 'Save';
-        saveButton.onclick = saveHealthCheck;
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-        document.getElementById('add-health-check').addEventListener('click', showAddHealthCheckForm);
-        document.getElementById('cancel-health-check').addEventListener('click', resetHealthCheckForm);
-        document.getElementById('save-health-check').addEventListener('click', saveHealthCheck);
-
-        updateHealthChecks();
-        setInterval(updateHealthChecks, 30000);
-    });
+    fetch(`/api/health-checks/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(healthCheck),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to update health check");
+        }
+        alert("Health check updated successfully");
+        document.getElementById("health-check-form").style.display = "none";
+        document.getElementById("add-health-check").style.display = "block";
+        loadHealthChecks();
+      })
+      .catch((error) => {
+        console.error("Error updating health check:", error);
+        alert("Error updating health check: " + error.message);
+      });
+  }
 </script>
