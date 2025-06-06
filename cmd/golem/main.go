@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"Golem/internal/api"
+	"Golem/internal/auth"
 	"Golem/internal/collector"
 	"Golem/internal/storage"
 )
@@ -32,7 +34,7 @@ func main() {
 		log.Fatalf("Failed to create data directory: %v", err)
 	}
 
-	// Initialize SQLite storage
+	// Initialize SQLite storage for metrics and health checks
 	dbPath := filepath.Join(dataDir, "golem.db")
 	metricStorage, err := storage.NewSQLiteStorage(dbPath)
 	if err != nil {
@@ -40,13 +42,30 @@ func main() {
 	}
 	defer metricStorage.Close()
 
+	// Initialize SQLite DB for users (reuse golem.db)
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		log.Fatalf("Failed to open SQLite DB for users: %v", err)
+	}
+	defer db.Close()
+
+	userStorage, err := auth.NewSQLiteUserStorage(db)
+	if err != nil {
+		log.Fatalf("Failed to initialize user storage: %v", err)
+	}
+
+	// JWT secret and duration (should be from env in production)
+	jwtSecret := "supersecretkey" // TODO: use os.Getenv in production
+	tokenDuration := 24 * time.Hour
+	jwtService := auth.NewJWTService(jwtSecret, tokenDuration)
+
 	collector := collector.NewCollector(metricStorage)
 	go collector.Start(ctx, 5*time.Second)
 
 	healthCheckCollector := collector.NewHealthCheckCollector(metricStorage)
 	go healthCheckCollector.Start(ctx)
 
-	apiServer := api.NewServer(metricStorage, metricStorage, healthCheckCollector)
+	apiServer := api.NewServer(metricStorage, metricStorage, healthCheckCollector, userStorage, jwtService)
 	server := &http.Server{
 		Addr:    ":8899",
 		Handler: apiServer.Router(),

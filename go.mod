@@ -4,10 +4,13 @@ go 1.24
 
 require (
 	github.com/go-sql-driver/mysql v1.9.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/shirou/gopsutil/v3 v3.24.5
+	golang.org/x/crypto v0.21.0
 )
 
 require (

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"Golem/internal/auth"
 	"Golem/internal/collector"
 	"Golem/internal/metrics"
 	"Golem/internal/storage"
@@ -17,18 +18,37 @@ type Server struct {
 	storage              storage.MetricStorage
 	healthCheckStorage   storage.HealthCheckStorage
 	healthCheckCollector *collector.HealthCheckCollector
+
+	userStorage auth.UserStorage
+	jwtService  *auth.JWTService
+	authHandler *auth.Handler
 }
 
-func NewServer(storage storage.MetricStorage, healthCheckStorage storage.HealthCheckStorage, healthCheckCollector *collector.HealthCheckCollector) *Server {
+func NewServer(storage storage.MetricStorage, healthCheckStorage storage.HealthCheckStorage, healthCheckCollector *collector.HealthCheckCollector, userStorage auth.UserStorage, jwtService *auth.JWTService) *Server {
 	return &Server{
 		storage:              storage,
 		healthCheckStorage:   healthCheckStorage,
 		healthCheckCollector: healthCheckCollector,
+		userStorage:          userStorage,
+		jwtService:           jwtService,
+		authHandler:          &auth.Handler{UserStore: userStorage, JWTService: jwtService},
 	}
 }
 
 func (s *Server) Router() http.Handler {
 	r := mux.NewRouter()
+
+	// Auth routes
+	r.HandleFunc("/api/auth/register", s.authHandler.RegisterHandler).Methods("POST")
+	r.HandleFunc("/api/auth/login", s.authHandler.LoginHandler).Methods("POST")
+
+	// User management (admin only)
+	userSubrouter := r.PathPrefix("/api/auth/users").Subrouter()
+	userSubrouter.Use(auth.JWTAuthMiddleware(s.jwtService))
+	userSubrouter.Use(auth.RequireRoleMiddleware(auth.RoleAdmin))
+	userSubrouter.HandleFunc("", s.authHandler.ListUsersHandler).Methods("GET")
+	userSubrouter.HandleFunc("/{id}", s.authHandler.UpdateUserHandler).Methods("PUT")
+	userSubrouter.HandleFunc("/{id}", s.authHandler.DeleteUserHandler).Methods("DELETE")
 
 	r.HandleFunc("/api/metrics", s.getLatestMetrics).Methods("GET")
 	r.HandleFunc("/api/metrics/history", s.getMetricsHistory).Methods("GET")
